@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 2. Query for teacher
     const q = query(
       collection(db, 'teachers'),
-      where('teacherName', '==', trimmedName),
+      where('name', '==', trimmedName),
       where('teacherId', '==', trimmedId)
     );
     

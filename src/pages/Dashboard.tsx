@@ -18,8 +18,8 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     totalStudents: 0,
-    totalSubjects: user?.assignedSubjects.length || 0,
-    totalGrades: user?.assignedGrades.length || 0,
+    totalSubjects: 0,
+    totalGrades: 0,
     completionRate: 0
   });
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
@@ -29,21 +29,50 @@ export default function Dashboard() {
       if (!user) return;
 
       try {
-        // Fetch students in assigned grades
+        // 1. Fetch subjects assigned to this teacher
+        const subjectsQuery = query(
+          collection(db, 'subjects'),
+          where('teacherId', '==', user.teacherId)
+        );
+        const subjectsSnapshot = await getDocs(subjectsQuery);
+        const assignedSubjects = subjectsSnapshot.docs.map(doc => doc.data());
+        
+        // 2. Extract unique grade IDs
+        const uniqueGradeIds = Array.from(new Set(assignedSubjects.map(s => s.gradeId)));
+
+        // 3. Fetch total students for these grades
         let studentCount = 0;
-        for (const grade of user.assignedGrades) {
-          const q = query(collection(db, 'students'), where('grade', '==', grade));
-          const snapshot = await getDocs(q);
-          studentCount += snapshot.size;
+        if (uniqueGradeIds.length > 0) {
+          // Firestore 'in' query has a limit of 10, but teachers usually don't have > 10 grades
+          const studentsQuery = query(
+            collection(db, 'students'),
+            where('gradeId', 'in', uniqueGradeIds)
+          );
+          const studentsSnapshot = await getDocs(studentsQuery);
+          studentCount = studentsSnapshot.size;
         }
 
-        // Calculate completion rate (dummy logic for now, should be based on results)
-        // In a real app, we'd query results where mark is not 'Unfilled'
-        setStats(prev => ({
-          ...prev,
+        setStats({
           totalStudents: studentCount,
-          completionRate: 65 // Hardcoded for demo until results collection is linked
-        }));
+          totalSubjects: assignedSubjects.length,
+          totalGrades: uniqueGradeIds.length,
+          completionRate: 0 // Will be calculated once results integration is deeper
+        });
+
+        // Optional: Fetch actual completion rate from results
+        if (assignedSubjects.length > 0) {
+          const resultsQuery = query(
+            collection(db, 'results'),
+            where('gradeId', 'in', uniqueGradeIds)
+          );
+          const resultsSnapshot = await getDocs(resultsQuery);
+          if (!resultsSnapshot.empty) {
+            const filled = resultsSnapshot.docs.filter(d => d.data().semester1 !== 'Unfilled').length;
+            const rate = Math.round((filled / (studentCount * assignedSubjects.length)) * 100);
+            setStats(prev => ({ ...prev, completionRate: isNaN(rate) ? 0 : Math.min(rate, 100) }));
+          }
+        }
+
       } catch (e) {
         console.error('Error fetching dashboard stats:', e);
       }
@@ -67,7 +96,7 @@ export default function Dashboard() {
           animate={{ opacity: 1, x: 0 }}
           className="text-3xl font-black tracking-tight text-slate-900 dark:text-white"
         >
-          Welcome Back, {user?.teacherName}
+          Welcome Back, {user?.name}
         </motion.h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">
           Here's an overview of your current academic responsibilities at Chercher Secondary.

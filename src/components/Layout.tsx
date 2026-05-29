@@ -100,10 +100,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="border-t border-slate-700 p-4">
               <div className="mb-4 flex items-center gap-3 px-2">
                 <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                  {user?.teacherName?.charAt(0)}
+                  {user?.name?.charAt(0)}
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="truncate text-xs font-semibold">{user?.teacherName}</p>
+                  <p className="truncate text-xs font-semibold">{user?.name}</p>
                   <p className="truncate text-[10px] text-slate-400 uppercase">{user?.teacherId}</p>
                 </div>
               </div>

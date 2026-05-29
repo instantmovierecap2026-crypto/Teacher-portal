@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { Result, Student } from '../types';
+import { Result, Student, Grade } from '../types';
 
 declare module 'jspdf' {
   interface jsPDF {
@@ -46,17 +46,17 @@ export const generateTranscript = (student: Student, results: Result[]) => {
   // Student Info
   doc.setFontSize(10);
   doc.setTextColor(0);
-  doc.text(`Student Name: ${student.studentName}`, 20, 45);
+  doc.text(`Student Name: ${student.name}`, 20, 45);
   doc.text(`Student ID: ${student.studentId}`, 20, 52);
-  doc.text(`Grade: ${student.grade}`, 140, 45);
+  doc.text(`Grade ID: ${student.gradeId}`, 140, 45);
   doc.text(`Sex: ${student.sex}`, 140, 52);
 
   // Table
   const tableData = results.map(r => [
-    r.subject, 
+    r.subjectId, 
     r.semester1, 
     r.semester2, 
-    r.subjectAverage, 
+    r.average, 
     r.finalStatus
   ]);
 
@@ -74,7 +74,7 @@ export const generateTranscript = (student: Student, results: Result[]) => {
   doc.setFontSize(9);
   doc.text("System Developed by Ramoda Technologies", 105, 285, { align: 'center' });
 
-  doc.save(`${student.studentName}_Transcript.pdf`);
+  doc.save(`${student.name}_Transcript.pdf`);
 };
 
 export const generateGradeReport = (grade: string, subject: string, results: Result[]) => {
@@ -88,11 +88,11 @@ export const generateGradeReport = (grade: string, subject: string, results: Res
 
   const tableData = results.map(r => [
     r.studentId,
-    r.studentName,
+    r.studentName || '...',
     r.semester1,
     r.semester2,
-    r.finalAverage,
-    r.finalStatus
+    r.finalAverage || '...',
+    r.finalStatus || '...'
   ]);
 
   (doc as any).autoTable({

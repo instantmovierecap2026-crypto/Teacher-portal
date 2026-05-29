@@ -122,19 +122,36 @@ export default function Login() {
                     
                     const snapshot = await getDocs(collection(db, 'teachers'));
                     if (snapshot.empty) {
-                      await addDoc(collection(db, 'teachers'), {
-                        teacherName: 'Admin',
+                      const teacherRef = await addDoc(collection(db, 'teachers'), {
+                        name: 'Admin',
                         teacherId: 'ADMIN123',
-                        assignedGrades: ['9A', '10B', '11A'],
-                        assignedSubjects: ['Mathematics', 'Physics', 'Biology'],
+                        sex: 'Male',
+                        age: 35,
                         role: 'admin',
                         createdAt: serverTimestamp()
                       });
                       
-                      // Also add some sample grades and subjects
-                      await addDoc(collection(db, 'grades'), { gradeName: '9', section: 'A', totalStudents: 45, totalSubjects: 8, createdAt: serverTimestamp() });
-                      await addDoc(collection(db, 'subjects'), { subjectName: 'Mathematics', subjectPasskey: '1234', assignedGrade: '9A', createdAt: serverTimestamp() });
-                      await addDoc(collection(db, 'students'), { studentId: 'ST001', studentName: 'Abebe Kebele', sex: 'Male', age: 16, grade: '9A', createdAt: serverTimestamp() });
+                      const gradeRef = await addDoc(collection(db, 'grades'), { 
+                        name: 'Grade 9A', 
+                        createdAt: serverTimestamp() 
+                      });
+
+                      await addDoc(collection(db, 'subjects'), { 
+                        name: 'Mathematics', 
+                        passkey: '1234', 
+                        teacherId: 'ADMIN123', 
+                        gradeId: gradeRef.id, 
+                        createdAt: serverTimestamp() 
+                      });
+
+                      await addDoc(collection(db, 'students'), { 
+                        studentId: 'ST001', 
+                        name: 'Abebe Kebele', 
+                        sex: 'Male', 
+                        age: 16, 
+                        gradeId: gradeRef.id, 
+                        createdAt: serverTimestamp() 
+                      });
 
                       alert('Test data seeded! Use Name: Admin, ID: ADMIN123 to login. Passkey: 1234');
                     } else {

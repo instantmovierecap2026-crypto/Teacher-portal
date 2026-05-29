@@ -28,7 +28,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Subject, Student, Result } from '../types';
+import { Subject, Student, Result, Grade } from '../types';
 import { calculateSubjectAverage, calculateStatus, calculateRanks } from '../utils/calculations';
 import { exportToExcel, exportToCSV, generateGradeReport, generateTranscript } from '../utils/exports';
 
@@ -38,6 +38,7 @@ export default function MarksEntry() {
   const navigate = useNavigate();
 
   const [subject, setSubject] = useState<Subject | null>(null);
+  const [grade, setGrade] = useState<Grade | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [results, setResults] = useState<Record<string, Result>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -56,14 +57,23 @@ export default function MarksEntry() {
     const fetchData = async () => {
       if (!gradeId || !subjectId) return;
       try {
-        // 1. Fetch Subject
-        const subDoc = await getDoc(doc(db, 'subjects', subjectId));
-        if (subDoc.exists()) {
-          setSubject({ ...subDoc.data(), id: subDoc.id } as Subject);
+        // 1. Fetch Subject & Grade
+        const [subSnap, gradeSnap] = await Promise.all([
+          getDoc(doc(db, 'subjects', subjectId)),
+          getDoc(doc(db, 'grades', gradeId))
+        ]);
+
+        if (subSnap.exists()) {
+          const subData = subSnap.data() as Subject;
+          setSubject({ ...subData, id: subSnap.id });
+        }
+
+        if (gradeSnap.exists()) {
+          setGrade({ ...gradeSnap.data(), id: gradeSnap.id } as Grade);
         }
 
         // 2. Fetch Students
-        const qStudents = query(collection(db, 'students'), where('grade', '==', gradeId));
+        const qStudents = query(collection(db, 'students'), where('gradeId', '==', gradeId));
         const snapStudents = await getDocs(qStudents);
         const fetchedStudents = snapStudents.docs.map(doc => ({ ...doc.data(), id: doc.id } as Student));
         setStudents(fetchedStudents);
@@ -71,8 +81,8 @@ export default function MarksEntry() {
         // 3. Fetch Existing Results for this subject
         const qResults = query(
           collection(db, 'results'), 
-          where('grade', '==', gradeId),
-          where('subject', '==', subDoc.data()?.subjectName)
+          where('gradeId', '==', gradeId),
+          where('subjectId', '==', subjectId)
         );
         const snapResults = await getDocs(qResults);
         const resultsMap: Record<string, Result> = {};
@@ -86,13 +96,17 @@ export default function MarksEntry() {
         fetchedStudents.forEach(student => {
           if (!resultsMap[student.studentId]) {
             resultsMap[student.studentId] = {
-              id: '', studentId: student.studentId, studentName: student.studentName,
-              grade: gradeId, subject: subDoc.data()?.subjectName || '',
-              semester1: 'Unfilled', semester2: 'Unfilled', subjectAverage: 'Unfilled',
-              semester1Total: 'Unfilled', semester1Average: 'Unfilled', semester1Rank: 'Unfilled', semester1Status: 'Unfilled',
-              semester2Total: 'Unfilled', semester2Average: 'Unfilled', semester2Rank: 'Unfilled', semester2Status: 'Unfilled',
-              finalTotal: 'Unfilled', finalAverage: 'Unfilled', finalRank: 'Unfilled', finalStatus: 'Unfilled',
-              publishStatus: false, updatedAt: null
+              id: '', 
+              studentId: student.studentId, 
+              studentName: student.name,
+              gradeId: gradeId, 
+              subjectId: subjectId,
+              semester1: 'Unfilled', 
+              semester2: 'Unfilled', 
+              average: 'Unfilled',
+              rank: 'Unfilled',
+              status: 'Unfilled',
+              updatedAt: null
             };
           }
         });
@@ -112,7 +126,7 @@ export default function MarksEntry() {
     e.preventDefault();
     if (!subject) return;
 
-    if (passkey === subject.subjectPasskey) {
+    if (passkey === subject.passkey) {
       setIsVerified(true);
       setPasskeyError('');
     } else {
@@ -121,7 +135,6 @@ export default function MarksEntry() {
   };
 
   const handleMarkChange = (studentId: string, semester: 'semester1' | 'semester2', value: string) => {
-    // Validate value is number 0-100 or empty
     if (value !== '' && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 100)) return;
 
     setResults(prev => {
@@ -129,7 +142,7 @@ export default function MarksEntry() {
       studentResult[semester] = value === '' ? 'Unfilled' : value;
       
       // Auto calc subject avg
-      studentResult.subjectAverage = calculateSubjectAverage(
+      studentResult.average = calculateSubjectAverage(
         studentResult.semester1, 
         studentResult.semester2
       );
@@ -147,26 +160,19 @@ export default function MarksEntry() {
       const batch = writeBatch(db);
       const studentIds = Object.keys(results);
       
-      // Calculate ranks and totals across ALL subjects for these students would be complex here.
-      // For now, let's satisfy the "Automatic calculations" by updating just the subject logic.
-      // THEME: "Do NOT calculate rankings using only subject averages".
-      // I'll fetch ALL results for this grade to do a proper ranking and summary update.
-      
-      const allResultsQuery = query(collection(db, 'results'), where('grade', '==', gradeId));
+      const allResultsQuery = query(collection(db, 'results'), where('gradeId', '==', gradeId));
       const allResultsSnap = await getDocs(allResultsQuery);
       const allResults = allResultsSnap.docs.map(doc => doc.data() as Result);
       
-      // Map students to their subjects
       const studentsMap: Record<string, Result[]> = {};
       allResults.forEach(r => {
         if (!studentsMap[r.studentId]) studentsMap[r.studentId] = [];
         studentsMap[r.studentId].push(r);
       });
 
-      // Update current results in the map
       for (const res of Object.values(results) as Result[]) {
         const studentResList = (studentsMap[res.studentId] || []) as Result[];
-        const index = studentResList.findIndex(r => r.subject === (subject as Subject).subjectName);
+        const index = studentResList.findIndex(r => r.subjectId === subject.id);
         if (index > -1) {
           studentResList[index] = res;
         } else {
@@ -175,7 +181,6 @@ export default function MarksEntry() {
         studentsMap[res.studentId] = studentResList;
       }
 
-      // Calculate summaries for each student
       const studentSummaries: Record<string, { s1Total: number, s1Avg: number, s2Total: number, s2Avg: number, finalTotal: number, finalAvg: number }> = {};
       
       for (const [sId, resList] of Object.entries(studentsMap) as [string, Result[]][]) {
@@ -194,12 +199,9 @@ export default function MarksEntry() {
         const finalT = s1T + s2T;
         const finalAvg = (s1Avg + s2Avg) / 2;
 
-        studentSummaries[sId] = {
-          s1Total: s1T, s1Avg, s2Total: s2T, s2Avg, finalTotal: finalT, finalAvg
-        };
+        studentSummaries[sId] = { s1Total: s1T, s1Avg, s2Total: s2T, s2Avg, finalTotal: finalT, finalAvg };
       }
 
-      // Calculate Ranks
       const s1Totals = Object.values(studentSummaries).map(s => s.s1Total);
       const s2Totals = Object.values(studentSummaries).map(s => s.s2Total);
       const finalTotals = Object.values(studentSummaries).map(s => s.finalTotal);
@@ -213,7 +215,6 @@ export default function MarksEntry() {
       const s2RankMap = Object.fromEntries(studentIdsSorted.map((id, i) => [id, s2Ranks[i]]));
       const finalRankMap = Object.fromEntries(studentIdsSorted.map((id, i) => [id, finalRanks[i]]));
 
-      // Final Batch Write
       for (const sId of studentIds) {
         const res = results[sId];
         const summary = studentSummaries[sId];
@@ -224,21 +225,19 @@ export default function MarksEntry() {
           semester1Average: summary.s1Avg.toFixed(2),
           semester1Rank: s1RankMap[sId].toString(),
           semester1Status: summary.s1Avg >= 50 ? 'Passed' : 'Failed',
-          
           semester2Total: summary.s2Total.toString(),
           semester2Average: summary.s2Avg.toFixed(2),
           semester2Rank: s2RankMap[sId].toString(),
           semester2Status: summary.s2Avg >= 50 ? 'Passed' : 'Failed',
-          
           finalTotal: summary.finalTotal.toString(),
           finalAverage: summary.finalAvg.toFixed(2),
           finalRank: finalRankMap[sId].toString(),
           finalStatus: summary.finalAvg >= 50 ? 'Passed' : 'Failed',
-          
+          status: res.average !== 'Unfilled' && parseFloat(res.average) >= 50 ? 'Passed' : 'Failed',
           updatedAt: serverTimestamp()
         };
 
-        const resultRef = doc(db, 'results', `${gradeId}_${subject.subjectName}_${sId}`);
+        const resultRef = doc(db, 'results', `${gradeId}_${subject.id}_${sId}`);
         batch.set(resultRef, updatedRes, { merge: true });
       }
 
@@ -246,14 +245,14 @@ export default function MarksEntry() {
       setNotification({ type: 'success', message: 'Marks saved and calculated successfully!' });
     } catch (e: any) {
       console.error('Save error:', e);
-      setNotification({ type: 'error', message: 'Failed to save marks. Check permissions.' });
+      setNotification({ type: 'error', message: 'Failed to save marks.' });
     } finally {
       setIsSaving(false);
     }
   };
 
   const filteredStudents = students.filter(s => 
-    s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.studentId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -287,7 +286,7 @@ export default function MarksEntry() {
                   <Lock size={32} />
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white">Verification Required</h2>
-                <p className="text-slate-500 text-sm mt-2 font-medium">Please enter the subject passkey for <span className="text-slate-900 dark:text-white underline">{subject?.subjectName}</span>.</p>
+                <p className="text-slate-500 text-sm mt-2 font-medium">Please enter the subject passkey for <span className="text-slate-900 dark:text-white underline">{subject?.name}</span>.</p>
               </div>
 
               <form onSubmit={handlePasskeyVerify} className="space-y-6">
@@ -334,9 +333,9 @@ export default function MarksEntry() {
           </Link>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="px-3 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase">Grade {gradeId}</span>
+              <span className="px-3 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase">{grade?.name || '...'}</span>
               <span className="text-slate-300 dark:text-slate-700">/</span>
-              <span className="px-3 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase">{subject?.subjectName}</span>
+              <span className="px-3 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase">{subject?.name}</span>
             </div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Marks Entry Portal</h1>
           </div>
@@ -344,12 +343,12 @@ export default function MarksEntry() {
 
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => exportToExcel(Object.values(results), `Results_${gradeId}_${subject?.subjectName}`)}
+            onClick={() => exportToExcel(Object.values(results), `Results_${gradeId}_${subject?.name}`)}
             className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Export Excel">
             <TableIcon size={20} />
           </button>
           <button 
-            onClick={() => generateGradeReport(gradeId!, subject?.subjectName!, Object.values(results))}
+            onClick={() => generateGradeReport(gradeId!, subject?.name!, Object.values(results))}
             className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Download report PDF">
             <FileDown size={20} />
           </button>
@@ -418,10 +417,10 @@ export default function MarksEntry() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400">
-                          {student.studentName.charAt(0)}
+                          {student.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900 dark:text-white leading-none mb-1">{student.studentName}</p>
+                          <p className="font-bold text-slate-900 dark:text-white leading-none mb-1">{student.name}</p>
                           <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tighter">{student.studentId}</p>
                         </div>
                       </div>
@@ -458,9 +457,9 @@ export default function MarksEntry() {
                     <td className="px-6 py-5 text-center">
                       <div className="inline-flex flex-col items-center">
                         <span className={`text-sm font-black ${
-                          parseFloat(res.subjectAverage) >= 50 ? 'text-green-600' : 'text-slate-400'
+                          res.average !== 'Unfilled' && parseFloat(res.average) >= 50 ? 'text-green-600' : 'text-slate-400'
                         }`}>
-                          {res.subjectAverage}
+                          {res.average}
                         </span>
                         <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">AVG</span>
                       </div>

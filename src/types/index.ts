@@ -1,63 +1,64 @@
 export interface Teacher {
   id: string;
   teacherId: string;
-  teacherName: string;
-  assignedGrades: string[];
-  assignedSubjects: string[];
+  name: string;
+  sex: 'Male' | 'Female';
+  age: number;
   role: 'teacher' | 'admin';
   createdAt: any;
+  uid?: string;
 }
 
 export interface Grade {
   id: string;
-  gradeName: string;
-  section: string;
-  totalStudents: number;
-  totalSubjects: number;
+  name: string; // e.g., "Grade 10A"
   createdAt: any;
 }
 
 export interface Student {
   id: string;
   studentId: string;
-  studentName: string;
+  name: string;
+  gradeId: string; // Reference to Grade ID
   sex: 'Male' | 'Female';
   age: number;
-  grade: string;
   createdAt: any;
 }
 
 export interface Subject {
   id: string;
-  subjectName: string;
-  subjectPasskey: string;
-  assignedGrade: string;
+  name: string;
+  passkey: string;
+  teacherId: string; // Reference to Teacher ID
+  gradeId: string; // Reference to Grade ID
   createdAt: any;
 }
 
 export interface Result {
   id: string;
   studentId: string;
-  studentName: string;
-  grade: string;
-  subject: string;
-  semester1: string; // "Unfilled" or numeric string
-  semester2: string; // "Unfilled" or numeric string
-  subjectAverage: string;
-  semester1Total: string;
-  semester1Average: string;
-  semester1Rank: string;
-  semester1Status: string;
-  semester2Total: string;
-  semester2Average: string;
-  semester2Rank: string;
-  semester2Status: string;
-  finalTotal: string;
-  finalAverage: string;
-  finalRank: string;
-  finalStatus: string;
-  publishStatus: boolean;
+  subjectId: string;
+  gradeId: string;
+  semester1: string; // "Unfilled" or number
+  semester2: string; // "Unfilled" or number
+  average: string;
+  rank: string;
+  status: string;
   updatedAt: any;
+  // Included fields from previous requirement for calculation completeness
+  semester1Total?: string;
+  semester1Average?: string;
+  semester1Rank?: string;
+  semester1Status?: string;
+  semester2Total?: string;
+  semester2Average?: string;
+  semester2Rank?: string;
+  semester2Status?: string;
+  finalTotal?: string;
+  finalAverage?: string;
+  finalRank?: string;
+  finalStatus?: string;
+  studentName?: string; // For UI display
 }
 
 export type Theme = 'light' | 'dark';
