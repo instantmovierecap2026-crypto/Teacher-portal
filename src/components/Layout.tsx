@@ -153,7 +153,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <input 
                   type="text" 
                   placeholder="Search records..." 
-                  className="bg-slate-100 border-none text-xs rounded-lg px-4 py-2 w-64 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                  className="bg-slate-100 dark:bg-slate-800 border-none text-xs font-medium text-slate-900 dark:text-slate-100 rounded-lg px-4 py-2 w-64 focus:ring-2 focus:ring-blue-500 transition-all outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
               <button className="text-slate-400 hover:text-slate-600 transition-colors">

@@ -298,7 +298,7 @@ export default function MarksEntry() {
                   onChange={(e) => setPasskey(e.target.value)}
                   placeholder="Enter Passkey"
                   autoFocus
-                  className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center text-2xl font-black tracking-widest focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center text-2xl font-black tracking-widest text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
                 
                 {passkeyError && (
@@ -374,7 +374,7 @@ export default function MarksEntry() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search student by name or ID..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
         <div className="flex items-center gap-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -441,7 +441,7 @@ export default function MarksEntry() {
                           value={res.semester1 === 'Unfilled' ? '' : res.semester1}
                           onChange={(e) => handleMarkChange(student.studentId, 'semester1', e.target.value)}
                           placeholder="--"
-                          className="w-16 h-10 text-center rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 text-blue-700 dark:text-blue-400 font-black focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                          className="w-16 h-10 text-center rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 text-blue-700 dark:text-blue-400 font-black placeholder:text-blue-300 dark:placeholder:text-blue-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
                         />
                       </div>
                     </td>
@@ -452,7 +452,7 @@ export default function MarksEntry() {
                           value={res.semester2 === 'Unfilled' ? '' : res.semester2}
                           onChange={(e) => handleMarkChange(student.studentId, 'semester2', e.target.value)}
                           placeholder="--"
-                          className="w-16 h-10 text-center rounded-xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-black focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                          className="w-16 h-10 text-center rounded-xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-black placeholder:text-indigo-300 dark:placeholder:text-indigo-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
                         />
                       </div>
                     </td>
