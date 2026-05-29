@@ -42,25 +42,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (name: string, id: string) => {
+    const trimmedName = name.trim();
+    const trimmedId = id.trim();
+
+    // 1. Sign in anonymously first so we have a 'uid' and can pass security rules
+    let firebaseUser;
+    try {
+      const result = await signInAnonymously(auth);
+      firebaseUser = result.user;
+    } catch (authErr) {
+      console.error('Auth failed:', authErr);
+      throw new Error('Authentication service unavailable');
+    }
+
+    // 2. Query for teacher
     const q = query(
       collection(db, 'teachers'),
-      where('teacherName', '==', name),
-      where('teacherId', '==', id)
+      where('teacherName', '==', trimmedName),
+      where('teacherId', '==', trimmedId)
     );
     
-    const snapshot = await getDocs(q);
+    let snapshot;
+    try {
+      snapshot = await getDocs(q);
+    } catch (queryErr) {
+      console.error('Query failed:', queryErr);
+      await signOut(auth); // Cleanup
+      throw new Error('Database access denied. Contact administrator.');
+    }
     
     if (snapshot.empty) {
+      await signOut(auth); // Cleanup
       throw new Error('Invalid Teacher Name or Teacher ID');
     }
 
     const teacherDoc = snapshot.docs[0];
     const teacherData = teacherDoc.data() as Teacher;
     
-    // Sign in anonymously to Firebase
-    const { user: firebaseUser } = await signInAnonymously(auth);
-    
-    // Link UID to teacher doc for persistence
+    // 3. Link UID to teacher doc for persistence
     const { doc, updateDoc } = await import('firebase/firestore');
     await updateDoc(doc(db, 'teachers', teacherDoc.id), {
       uid: firebaseUser.uid

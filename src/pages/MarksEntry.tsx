@@ -164,18 +164,21 @@ export default function MarksEntry() {
       });
 
       // Update current results in the map
-      for (const res of Object.values(results)) {
-        const studentResList = studentsMap[res.studentId] || [];
-        const index = studentResList.findIndex(r => r.subject === subject.subjectName);
-        if (index > -1) studentResList[index] = res;
-        else studentResList.push(res);
+      for (const res of Object.values(results) as Result[]) {
+        const studentResList = (studentsMap[res.studentId] || []) as Result[];
+        const index = studentResList.findIndex(r => r.subject === (subject as Subject).subjectName);
+        if (index > -1) {
+          studentResList[index] = res;
+        } else {
+          studentResList.push(res);
+        }
         studentsMap[res.studentId] = studentResList;
       }
 
       // Calculate summaries for each student
       const studentSummaries: Record<string, { s1Total: number, s1Avg: number, s2Total: number, s2Avg: number, finalTotal: number, finalAvg: number }> = {};
       
-      for (const [sId, resList] of Object.entries(studentsMap)) {
+      for (const [sId, resList] of Object.entries(studentsMap) as [string, Result[]][]) {
         let s1T = 0, s1Count = 0;
         let s2T = 0, s2Count = 0;
         

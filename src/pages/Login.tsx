@@ -110,6 +110,48 @@ export default function Login() {
                 </>
               )}
             </button>
+
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    setIsLoading(true);
+                    const { collection, addDoc, getDocs, serverTimestamp } = await import('firebase/firestore');
+                    const { db } = await import('../lib/firebase');
+                    
+                    const snapshot = await getDocs(collection(db, 'teachers'));
+                    if (snapshot.empty) {
+                      await addDoc(collection(db, 'teachers'), {
+                        teacherName: 'Admin',
+                        teacherId: 'ADMIN123',
+                        assignedGrades: ['9A', '10B', '11A'],
+                        assignedSubjects: ['Mathematics', 'Physics', 'Biology'],
+                        role: 'admin',
+                        createdAt: serverTimestamp()
+                      });
+                      
+                      // Also add some sample grades and subjects
+                      await addDoc(collection(db, 'grades'), { gradeName: '9', section: 'A', totalStudents: 45, totalSubjects: 8, createdAt: serverTimestamp() });
+                      await addDoc(collection(db, 'subjects'), { subjectName: 'Mathematics', subjectPasskey: '1234', assignedGrade: '9A', createdAt: serverTimestamp() });
+                      await addDoc(collection(db, 'students'), { studentId: 'ST001', studentName: 'Abebe Kebele', sex: 'Male', age: 16, grade: '9A', createdAt: serverTimestamp() });
+
+                      alert('Test data seeded! Use Name: Admin, ID: ADMIN123 to login. Passkey: 1234');
+                    } else {
+                      alert('Database already contains data.');
+                    }
+                  } catch (e) {
+                    alert('Error seeding data. Check console.');
+                    console.error(e);
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors"
+              >
+                Seed Initial Test Data (Debug)
+              </button>
+            </div>
           </form>
         </div>
 
