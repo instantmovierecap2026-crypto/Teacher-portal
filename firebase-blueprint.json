@@ -5,104 +5,91 @@
       "description": "Represents a teacher in the school.",
       "type": "object",
       "properties": {
-        "teacherId": { "type": "string", "description": "Unique teacher ID" },
-        "teacherName": { "type": "string", "description": "Teacher full name" },
-        "assignedGrades": { "type": "array", "description": "List of grades assigned (e.g., ['9A', '10B'])" },
-        "assignedSubjects": { "type": "array", "description": "List of subjects assigned (e.g., ['Biology', 'Physics'])" },
+        "teacherId": { "type": "string", "description": "Unique ID entered manually" },
+        "name": { "type": "string", "description": "Full Name" },
+        "sex": { "type": "string", "enum": ["Male", "Female"] },
+        "age": { "type": "number" },
         "role": { "type": "string", "enum": ["teacher", "admin"] },
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["teacherId", "teacherName", "assignedGrades", "assignedSubjects", "role", "createdAt"]
+      "required": ["teacherId", "name", "createdAt"]
     },
     "Grade": {
       "title": "Grade",
-      "description": "Represents a class grade and section.",
+      "description": "Represents a class section.",
       "type": "object",
       "properties": {
-        "gradeName": { "type": "string", "description": "e.g., 9, 10, 11" },
-        "section": { "type": "string", "description": "e.g., A, B, C" },
-        "totalStudents": { "type": "number" },
-        "totalSubjects": { "type": "number" },
+        "name": { "type": "string", "description": "e.g., Grade 10A" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["gradeName", "section", "totalStudents", "totalSubjects", "createdAt"]
+      "required": ["name", "createdAt"]
     },
     "Student": {
       "title": "Student",
-      "description": "Represents a student enrolled in a grade.",
+      "description": "Represents a student profile.",
       "type": "object",
       "properties": {
-        "studentId": { "type": "string", "description": "Random ID (STxxxx)" },
-        "studentName": { "type": "string" },
+        "studentId": { "type": "string", "description": "Unique student ID" },
+        "name": { "type": "string" },
+        "gradeId": { "type": "string", "description": "Reference to Grade ID" },
         "sex": { "type": "string", "enum": ["Male", "Female"] },
         "age": { "type": "number" },
-        "grade": { "type": "string", "description": "e.g., 9A" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["studentId", "studentName", "sex", "age", "grade", "createdAt"]
+      "required": ["studentId", "name", "gradeId", "createdAt"]
     },
     "Subject": {
       "title": "Subject",
-      "description": "Represents a subject taught in a grade.",
+      "description": "Represents a subject module.",
       "type": "object",
       "properties": {
-        "subjectName": { "type": "string" },
-        "subjectPasskey": { "type": "string" },
-        "assignedGrade": { "type": "string" },
+        "name": { "type": "string" },
+        "passkey": { "type": "string" },
+        "teacherId": { "type": "string", "description": "Reference to Teacher ID string (not UID)" },
+        "gradeId": { "type": "string", "description": "Reference to Grade Doc ID" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["subjectName", "subjectPasskey", "assignedGrade", "createdAt"]
+      "required": ["name", "passkey", "teacherId", "gradeId", "createdAt"]
     },
     "Result": {
       "title": "Result",
-      "description": "Represents calculation result for a student in a specific subject.",
+      "description": "Represents student academic performance.",
       "type": "object",
       "properties": {
         "studentId": { "type": "string" },
-        "studentName": { "type": "string" },
-        "grade": { "type": "string" },
-        "subject": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "gradeId": { "type": "string" },
         "semester1": { "type": "string" },
         "semester2": { "type": "string" },
-        "subjectAverage": { "type": "string" },
-        "semester1Total": { "type": "string" },
-        "semester1Average": { "type": "string" },
-        "semester1Rank": { "type": "string" },
-        "semester1Status": { "type": "string" },
-        "semester2Total": { "type": "string" },
-        "semester2Average": { "type": "string" },
-        "semester2Rank": { "type": "string" },
-        "semester2Status": { "type": "string" },
-        "finalTotal": { "type": "string" },
-        "finalAverage": { "type": "string" },
-        "finalRank": { "type": "string" },
-        "finalStatus": { "type": "string" },
-        "publishStatus": { "type": "boolean" },
+        "average": { "type": "string" },
+        "rank": { "type": "string" },
+        "status": { "type": "string" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["studentId", "studentName", "grade", "subject", "updatedAt"]
+      "required": ["studentId", "subjectId", "gradeId", "updatedAt"]
     }
   },
   "firestore": {
     "/teachers/{teacherId}": {
       "schema": "Teacher",
-      "description": "Teachers accounts."
+      "description": "Teacher accounts."
     },
     "/grades/{gradeId}": {
       "schema": "Grade",
-      "description": "Grade configurations."
+      "description": "Grade sections."
     },
     "/students/{studentId}": {
       "schema": "Student",
-      "description": "Student details."
+      "description": "Student profiles."
     },
     "/subjects/{subjectId}": {
       "schema": "Subject",
-      "description": "Subject definitions with passkeys."
+      "description": "Subjects with passkeys."
     },
     "/results/{resultId}": {
       "schema": "Result",
-      "description": "Student academic results."
+      "description": "Academic records."
     }
   }
 }

@@ -45,19 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const trimmedName = name.trim();
     const trimmedId = id.trim();
 
-    // 1. Sign in anonymously first so we have a 'uid' and can pass security rules
-    let firebaseUser;
-    try {
-      const result = await signInAnonymously(auth);
-      firebaseUser = result.user;
-    } catch (authErr) {
-      console.error('Auth failed:', authErr);
-      throw new Error('Authentication service unavailable');
-    }
-
-    // 2. Query for teacher
+    // 1. First, check if the teacher exists (Allow this in rules)
+    const teachersRef = collection(db, 'teachers');
     const q = query(
-      collection(db, 'teachers'),
+      teachersRef,
       where('name', '==', trimmedName),
       where('teacherId', '==', trimmedId)
     );
@@ -65,19 +56,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let snapshot;
     try {
       snapshot = await getDocs(q);
-    } catch (queryErr) {
-      console.error('Query failed:', queryErr);
-      await signOut(auth); // Cleanup
-      throw new Error('Database access denied. Contact administrator.');
+    } catch (queryErr: any) {
+      console.error('Initial teacher query failed:', queryErr);
+      throw new Error(`Database connection error: ${queryErr.message}`);
     }
     
     if (snapshot.empty) {
-      await signOut(auth); // Cleanup
       throw new Error('Invalid Teacher Name or Teacher ID');
     }
 
     const teacherDoc = snapshot.docs[0];
     const teacherData = teacherDoc.data() as Teacher;
+
+    // 2. Now attempt to sign in anonymously
+    let firebaseUser;
+    try {
+      const result = await signInAnonymously(auth);
+      firebaseUser = result.user;
+    } catch (authErr: any) {
+      console.error('Auth failed:', authErr);
+      // Fallback: If auth service is genuinely down but we found the teacher, 
+      // we might proceed if the rules allow it, but usually rules require auth.
+      // We'll report the specific error.
+      if (authErr.code === 'auth/operation-not-allowed') {
+        throw new Error('Anonymous authentication is disabled in Firebase. Enable it in the console.');
+      }
+      throw new Error(`Authentication service error: ${authErr.message}`);
+    }
     
     // 3. Link UID to teacher doc for persistence
     const { doc, updateDoc } = await import('firebase/firestore');
@@ -85,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       uid: firebaseUser.uid
     });
 
-    setUser({ ...teacherData, id: teacherDoc.id, uid: firebaseUser.uid } as any);
+    setUser({ ...teacherData, id: teacherDoc.id, uid: firebaseUser.uid });
   };
 
   const logout = async () => {

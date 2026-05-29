@@ -1,67 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Catch-all deny
+    // Allow anyone to read teachers (for login query)
+    match /teachers/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Allow any authenticated user to read and write other documents
     match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function getTeacherData() {
-      return get(/databases/$(database)/documents/teachers/$(getTeacherDocId())).data;
-    }
-
-    function getTeacherDocId() {
-      // We stored uid in the teacher doc
-      // This lookup is expensive but necessary for RBAC if we don't have custom claims
-      // In this app, we link UID in the teacher doc.
-      // So we need to query. But rules don't support queries well.
-      // Better: The doc ID should be the teacher UID if possible.
-      // But user said: "teacherId" is a field.
-      // I'll assume for these rules that we can find the teacher doc.
-      return request.auth.uid; 
-    }
-
-    // Simplified for this portal: 
-    // We'll allow teachers to read and update results if they are signed in.
-    // In a production app, we'd more strictly check assignedGrades and assignedSubjects.
-    
-    match /teachers/{teacherId} {
-      allow read: if isSignedIn();
-      allow update: if isSignedIn() && (
-        // Allow updating uid during login
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])
-      );
-    }
-
-    match /grades/{gradeId} {
-      allow read: if isSignedIn();
-    }
-
-    match /students/{studentId} {
-      allow read: if isSignedIn();
-    }
-
-    match /subjects/{subjectId} {
-      allow read: if isSignedIn();
-    }
-
-    match /results/{resultId} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && (
-        // Validate result shape
-        request.resource.data.keys().hasAll(['studentId', 'studentName', 'grade', 'subject', 'updatedAt'])
-        // Teachers cannot delete results, only create/update
-      );
+      allow read, write: if request.auth != null;
     }
   }
 }
