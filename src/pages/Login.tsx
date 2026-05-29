@@ -46,7 +46,7 @@ export default function Login() {
           <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
             Chercher Secondary
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Teacher Portal</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Teacher Portal v1.1</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-2xl shadow-slate-200 dark:shadow-none border border-slate-200 dark:border-slate-800">

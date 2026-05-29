@@ -45,7 +45,8 @@ export interface Result {
   rank: string;
   status: string;
   updatedAt: any;
-  // Included fields from previous requirement for calculation completeness
+  // Metadata for UI
+  studentName?: string;
   semester1Total?: string;
   semester1Average?: string;
   semester1Rank?: string;
@@ -58,7 +59,6 @@ export interface Result {
   finalAverage?: string;
   finalRank?: string;
   finalStatus?: string;
-  studentName?: string; // For UI display
 }
 
 export type Theme = 'light' | 'dark';

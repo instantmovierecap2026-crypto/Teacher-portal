@@ -233,6 +233,8 @@ export default function MarksEntry() {
           finalAverage: summary.finalAvg.toFixed(2),
           finalRank: finalRankMap[sId].toString(),
           finalStatus: summary.finalAvg >= 50 ? 'Passed' : 'Failed',
+          average: res.average, // This is the subject average
+          rank: finalRankMap[sId].toString(), // Class rank
           status: res.average !== 'Unfilled' && parseFloat(res.average) >= 50 ? 'Passed' : 'Failed',
           updatedAt: serverTimestamp()
         };

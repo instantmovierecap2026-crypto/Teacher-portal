@@ -1,14 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { Teacher } from '../types';
 
 interface AuthContextType {
   user: Teacher | null;
   loading: boolean;
   login: (name: string, id: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,34 +17,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Re-auth on load if we have a persistent anonymous session
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+    const recoverSession = async () => {
+      const savedTeacherId = localStorage.getItem('teacher_session_id');
+      const savedDocId = localStorage.getItem('teacher_doc_id');
+
+      if (savedTeacherId && savedDocId) {
         try {
-          // Find teacher by linked UID
-          const q = query(collection(db, 'teachers'), where('uid', '==', firebaseUser.uid));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            const data = snapshot.docs[0].data() as Teacher;
-            setUser({ ...data, id: snapshot.docs[0].id });
+          const docRef = doc(db, 'teachers', savedDocId);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data() as Teacher;
+            if (data.teacherId === savedTeacherId) {
+              setUser({ ...data, id: docSnap.id });
+            }
           }
         } catch (e) {
           console.error('Failed to recover session:', e);
         }
-      } else {
-        setUser(null);
       }
       setLoading(false);
-    });
+    };
 
-    return unsubscribe;
+    recoverSession();
   }, []);
 
   const login = async (name: string, id: string) => {
     const trimmedName = name.trim();
     const trimmedId = id.trim();
 
-    // 1. First, check if the teacher exists (Allow this in rules)
     const teachersRef = collection(db, 'teachers');
     const q = query(
       teachersRef,
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       snapshot = await getDocs(q);
     } catch (queryErr: any) {
-      console.error('Initial teacher query failed:', queryErr);
+      console.error('Teacher query failed:', queryErr);
       throw new Error(`Database connection error: ${queryErr.message}`);
     }
     
@@ -66,35 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const teacherDoc = snapshot.docs[0];
-    const teacherData = teacherDoc.data() as Teacher;
+    const teacherData = { ...teacherDoc.data() as Teacher, id: teacherDoc.id };
 
-    // 2. Now attempt to sign in anonymously
-    let firebaseUser;
-    try {
-      const result = await signInAnonymously(auth);
-      firebaseUser = result.user;
-    } catch (authErr: any) {
-      console.error('Auth failed:', authErr);
-      // Fallback: If auth service is genuinely down but we found the teacher, 
-      // we might proceed if the rules allow it, but usually rules require auth.
-      // We'll report the specific error.
-      if (authErr.code === 'auth/operation-not-allowed') {
-        throw new Error('Anonymous authentication is disabled in Firebase. Enable it in the console.');
-      }
-      throw new Error(`Authentication service error: ${authErr.message}`);
-    }
-    
-    // 3. Link UID to teacher doc for persistence
-    const { doc, updateDoc } = await import('firebase/firestore');
-    await updateDoc(doc(db, 'teachers', teacherDoc.id), {
-      uid: firebaseUser.uid
-    });
+    // Save to localStorage for persistence
+    localStorage.setItem('teacher_session_id', teacherData.teacherId);
+    localStorage.setItem('teacher_doc_id', teacherDoc.id);
 
-    setUser({ ...teacherData, id: teacherDoc.id, uid: firebaseUser.uid });
+    setUser(teacherData);
   };
 
-  const logout = async () => {
-    await signOut(auth);
+  const logout = () => {
+    localStorage.removeItem('teacher_session_id');
+    localStorage.removeItem('teacher_doc_id');
     setUser(null);
   };
 
