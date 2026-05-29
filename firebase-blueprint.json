@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "Teacher": {
+      "title": "Teacher",
+      "description": "Represents a teacher in the school.",
+      "type": "object",
+      "properties": {
+        "teacherId": { "type": "string", "description": "Unique teacher ID" },
+        "teacherName": { "type": "string", "description": "Teacher full name" },
+        "assignedGrades": { "type": "array", "description": "List of grades assigned (e.g., ['9A', '10B'])" },
+        "assignedSubjects": { "type": "array", "description": "List of subjects assigned (e.g., ['Biology', 'Physics'])" },
+        "role": { "type": "string", "enum": ["teacher", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["teacherId", "teacherName", "assignedGrades", "assignedSubjects", "role", "createdAt"]
+    },
+    "Grade": {
+      "title": "Grade",
+      "description": "Represents a class grade and section.",
+      "type": "object",
+      "properties": {
+        "gradeName": { "type": "string", "description": "e.g., 9, 10, 11" },
+        "section": { "type": "string", "description": "e.g., A, B, C" },
+        "totalStudents": { "type": "number" },
+        "totalSubjects": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["gradeName", "section", "totalStudents", "totalSubjects", "createdAt"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Represents a student enrolled in a grade.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "description": "Random ID (STxxxx)" },
+        "studentName": { "type": "string" },
+        "sex": { "type": "string", "enum": ["Male", "Female"] },
+        "age": { "type": "number" },
+        "grade": { "type": "string", "description": "e.g., 9A" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "studentName", "sex", "age", "grade", "createdAt"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Represents a subject taught in a grade.",
+      "type": "object",
+      "properties": {
+        "subjectName": { "type": "string" },
+        "subjectPasskey": { "type": "string" },
+        "assignedGrade": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["subjectName", "subjectPasskey", "assignedGrade", "createdAt"]
+    },
+    "Result": {
+      "title": "Result",
+      "description": "Represents calculation result for a student in a specific subject.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "grade": { "type": "string" },
+        "subject": { "type": "string" },
+        "semester1": { "type": "string" },
+        "semester2": { "type": "string" },
+        "subjectAverage": { "type": "string" },
+        "semester1Total": { "type": "string" },
+        "semester1Average": { "type": "string" },
+        "semester1Rank": { "type": "string" },
+        "semester1Status": { "type": "string" },
+        "semester2Total": { "type": "string" },
+        "semester2Average": { "type": "string" },
+        "semester2Rank": { "type": "string" },
+        "semester2Status": { "type": "string" },
+        "finalTotal": { "type": "string" },
+        "finalAverage": { "type": "string" },
+        "finalRank": { "type": "string" },
+        "finalStatus": { "type": "string" },
+        "publishStatus": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "studentName", "grade", "subject", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/teachers/{teacherId}": {
+      "schema": "Teacher",
+      "description": "Teachers accounts."
+    },
+    "/grades/{gradeId}": {
+      "schema": "Grade",
+      "description": "Grade configurations."
+    },
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Student details."
+    },
+    "/subjects/{subjectId}": {
+      "schema": "Subject",
+      "description": "Subject definitions with passkeys."
+    },
+    "/results/{resultId}": {
+      "schema": "Result",
+      "description": "Student academic results."
+    }
+  }
+}

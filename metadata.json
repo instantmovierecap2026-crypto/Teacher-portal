@@ -1,0 +1,6 @@
+{
+  "name": "Chercher Secondary Teacher Portal",
+  "description": "A professional interactive Teacher Portal for managing student marks, transcripts, and academic records at Chercher Secondary School.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
